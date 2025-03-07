@@ -1,0 +1,43 @@
+pipeline {
+  agent any
+  environment {
+    AWS_ACCESS_KEY_ID     = credentials('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+    INFRACOST_API_KEY     = credentials('INFRACOST_API_KEY')
+  }
+  stages {
+    // Terraform Plan + Cost Estimate
+    stage('Terraform Plan & Cost Check') {
+      steps {
+        dir('infrastructure/dev') {
+          sh 'terraform init'
+          sh 'terraform plan -out=tfplan'
+          sh 'infracost breakdown --path . --format json --out-file infracost.json'
+        }
+      }
+    }
+    // Manual Approval for Prod (Example)
+    stage('Approval') {
+      when { branch 'main' }  // Only for production
+      steps {
+        timeout(time: 1, unit: 'HOURS') {
+          input message: 'Apply changes to PROD?', ok: 'Confirm'
+        }
+      }
+    }
+    // Terraform Apply
+    stage('Apply Changes') {
+      steps {
+        dir('infrastructure/dev') {
+          sh 'terraform apply -auto-approve tfplan'
+        }
+      }
+    }
+  }
+  post {
+    always {
+      archiveArtifacts artifacts: 'infrastructure/dev/infracost.json'
+      cleanWs()  // Clean workspace after run
+    }
+  }
+}

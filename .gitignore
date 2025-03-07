@@ -1,0 +1,18 @@
+# Local Terraform directories
+**/.terraform/
+*.tfstate
+*.tfstate.backup
+
+# SSH keys
+*.pem
+
+# Jenkins/IDE files
+.jenkins/
+.idea/
+.vscode/
+
+# Infracost
+infracost.json
+
+# AWS credentials (never commit!)
+*.aws/credentials
